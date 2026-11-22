@@ -46,4 +46,4 @@ docker build -f Dockerfile.test -t gpt62eval-test . && docker run --rm gpt62eval
 
 ## Cost
 
-Global Standard deployments bill per token only. Costs are computed from list prices in `src/gpt62eval/pricing.py`. The prices of GPT-6 Astra and GPT-6.1 Sol there are OpenAI list prices and were not verified for Foundry.
+Global Standard deployments bill per token only. Costs are computed from the Azure retail prices for Sweden Central, Global Standard, short context, in `src/gpt62eval/pricing.py` (checked 2026-11-22).

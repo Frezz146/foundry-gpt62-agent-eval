@@ -1,8 +1,8 @@
 """List prices per million tokens (Global Standard, short context, USD).
 
-GPT-6.2 prices: Microsoft Foundry blog, 2026-11-17.
-GPT-6 Astra and GPT-6.1 Sol: OpenAI list prices via devtk.ai, 2026-11-16,
-not verified for Foundry. Re-check before publishing.
+Source: Azure Retail Prices API (prices.azure.com), product "Azure OpenAI GPT6",
+Sweden Central, Global Standard, short context, checked 2026-11-22. GPT-6.2 prices match
+the Microsoft Foundry blog of 2026-11-17.
 """
 
 from __future__ import annotations
@@ -15,15 +15,15 @@ class Price:
     input_usd: float
     cached_input_usd: float
     output_usd: float
-    # 30 minute cache write. Unknown for the predecessors, so the input price is assumed there.
+    # 30 minute cache write
     cache_write_usd: float
 
 
 PRICES: dict[str, Price] = {
     "gpt-6.2-astra": Price(8.00, 0.40, 40.00, 10.00),
-    "gpt-6-astra": Price(10.00, 1.00, 50.00, 10.00),
+    "gpt-6-astra": Price(10.00, 1.00, 50.00, 12.50),
     "gpt-6.2-sol": Price(2.00, 0.10, 10.00, 2.50),
-    "gpt-6.1-sol": Price(2.00, 0.10, 10.00, 2.00),
+    "gpt-6.1-sol": Price(2.00, 0.10, 10.00, 2.50),
 }
 
 _PER = 1_000_000
