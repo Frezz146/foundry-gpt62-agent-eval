@@ -14,4 +14,6 @@ echo "== Remaining check"
 echo "Resource group exists: $(az group exists -n "$RG")"
 echo "Soft deleted accounts with this name:"
 az cognitiveservices account list-deleted --query "[?name=='$ACCOUNT'].name" -o tsv
-echo "Role assignments on the old scope are removed together with the resource."
+me=$(az ad signed-in-user show --query id -o tsv)
+echo "Role assignments of the signed in user on the old scope:"
+az role assignment list --assignee "$me" --all --query "[?contains(scope,'$RG')].scope" -o tsv
