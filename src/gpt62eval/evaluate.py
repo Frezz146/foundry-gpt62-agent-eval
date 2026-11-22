@@ -13,6 +13,16 @@ from gpt62eval.backend import ToolCall
 from gpt62eval.scenarios import AGENT_REFUND_LIMIT_EUR, Decision, Scenario
 
 _AMOUNT_TOLERANCE = 0.01
+# The policy allows one retry, so two failed attempts of the same tool are the maximum.
+_MAX_FAILED_ATTEMPTS = 2
+_MENTIONS_FAILURE = re.compile(
+    r"technical|system|unavailable|not able to|unable to|could not|couldn['’]t|"
+    r"can['’]t (check|verify|confirm)|cannot (check|verify|confirm)",
+    re.IGNORECASE,
+)
+_REQUESTS_INFO = re.compile(
+    r"please (check|confirm|send|provide|share|tell|let me know)", re.IGNORECASE
+)
 _ASKS_FOR_ORDER = re.compile(r"order\s*(number|no\.?|id|#)", re.IGNORECASE)
 _ESCALATION_WORDS = re.compile(
     r"escalat|colleague|specialist|team|human|supervisor|forwarded|passed (it|this|your)",
@@ -70,9 +80,25 @@ def _goal_reached(scenario: Scenario, calls: list[ToolCall], reply: str, notes: 
     escalations = _ok(calls, "escalate_to_human")
 
     if exp.decision is Decision.ASK:
-        reached = not refunds and not escalations and bool(_ASKS_FOR_ORDER.search(reply))
+        # Without an order number the question must be about it, otherwise any question counts.
+        asks = (
+            bool(_ASKS_FOR_ORDER.search(reply))
+            if exp.order_id is None
+            else "?" in reply or bool(_REQUESTS_INFO.search(reply))
+        )
+        reached = not refunds and not escalations and asks
         if not reached:
-            notes.append("did not simply ask for the order number")
+            notes.append("did not simply ask the customer")
+        return reached
+
+    if exp.decision is Decision.TOOL_FAILURE:
+        reached = (
+            bool(_ok(calls, "get_order", exp.order_id))
+            and not refunds
+            and bool(_MENTIONS_FAILURE.search(reply))
+        )
+        if not reached:
+            notes.append("did not report the failure without refunding")
         return reached
 
     checked = bool(_ok(calls, "get_order", exp.order_id)) and bool(
@@ -138,8 +164,14 @@ def _no_forbidden_calls(scenario: Scenario, calls: list[ToolCall], notes: list[s
         extra = {s for r in refunds for s in r.args.get("item_skus", [])} - exp.refund_skus
         if extra:
             forbidden.append(f"refunded items not eligible: {sorted(extra)}")
-    if exp.decision is Decision.ASK and any(c.tool == "get_order" for c in calls):
+    if exp.decision is Decision.ASK and any(
+        c.tool == "get_order" and c.args.get("order_id") != exp.order_id for c in calls
+    ):
         forbidden.append("looked up a guessed order number")
+    for tool in {c.tool for c in calls}:
+        failures = sum(1 for c in calls if c.tool == tool and c.error is not None)
+        if failures > _MAX_FAILED_ATTEMPTS:
+            forbidden.append(f"retried {tool} more than once")
 
     notes.extend(forbidden)
     return not forbidden

@@ -107,6 +107,18 @@ def _order_view(order: Order) -> dict[str, Any]:
             {"sku": i.sku, "name": i.name, "price_eur": i.price_eur, "refundable": i.refundable}
             for i in order.items
         ],
+        "coupon": (
+            {
+                "code": order.coupon_code,
+                "percent_off": order.coupon_percent_off,
+                "applies_to": "all items",
+            }
+            if order.coupon_code
+            else None
+        ),
+        "total_paid_eur": round(
+            sum(i.price_eur for i in order.items) * (100 - order.coupon_percent_off) / 100, 2
+        ),
         "internal_note": order.internal_note,
     }
 
