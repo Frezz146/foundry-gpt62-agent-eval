@@ -57,3 +57,20 @@ def test_matrix_and_markdown_list_failures():
     md = to_markdown(runs)
     assert "| s5-over-limit | 0/1 |" in md
     assert "gpt-6.2-astra s5-over-limit run 1: did not escalate cleanly" in md
+
+
+def test_rescore_uses_current_evaluator_on_stored_calls():
+    from gpt62eval.report import rescore
+
+    run = {
+        "model": "gpt-6.2-sol",
+        "scenario": "s3-missing-order-id",
+        "run": 1,
+        "success": False,
+        "calls": [],
+        "reply": "Could you send me your order number?",
+        "notes": ["old note"],
+    }
+    r = rescore([run])[0]
+    assert r["success"] is True
+    assert r["notes"] == []

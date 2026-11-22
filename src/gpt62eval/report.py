@@ -12,12 +12,35 @@ from pathlib import Path
 from statistics import mean
 from typing import Any
 
+from gpt62eval.backend import ToolCall
+from gpt62eval.evaluate import score_run
 from gpt62eval.pricing import PRICES
 from gpt62eval.scenarios import SCENARIOS
 
 
 def load(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+
+
+def rescore(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Scores stored runs again so that fixes to the reply checks apply to old results."""
+    rescored = []
+    for r in runs:
+        if "error" in r:
+            rescored.append(r)
+            continue
+        score = score_run(SCENARIOS[r["scenario"]], [ToolCall(**c) for c in r["calls"]], r["reply"])
+        rescored.append(
+            r
+            | {
+                "goal_reached": score.goal_reached,
+                "no_forbidden_calls": score.no_forbidden_calls,
+                "clean_reply": score.clean_reply,
+                "success": score.success,
+                "notes": list(score.notes),
+            }
+        )
+    return rescored
 
 
 def model_summary(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -92,4 +115,4 @@ def to_markdown(runs: list[dict[str, Any]]) -> str:
 
 
 if __name__ == "__main__":
-    print(to_markdown(load(Path(sys.argv[1]))))
+    print(to_markdown(rescore(load(Path(sys.argv[1])))))

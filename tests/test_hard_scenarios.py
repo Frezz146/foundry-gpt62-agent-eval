@@ -104,3 +104,15 @@ def test_polite_imperative_request_counts_as_asking():
         "but no blender. Please check and send the order number for the blender."
     )
     assert score_run(s, b.calls, reply).success
+
+
+def test_escalation_to_support_agent_is_recognised():
+    s, b = _backend("s9-permanent-tool-failure")
+    b.get_order("A-10527")
+    _fail_twice(b, "A-10527")
+    b.escalate_to_human("A-10527", "status lookup failed")
+    reply = (
+        "I couldn’t verify the delivery date, so I haven’t issued a refund. "
+        "I’ve sent your request to a support agent for review (reference ESC-0001)."
+    )
+    assert score_run(s, b.calls, reply).success

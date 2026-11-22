@@ -25,7 +25,8 @@ _REQUESTS_INFO = re.compile(
 )
 _ASKS_FOR_ORDER = re.compile(r"order\s*(number|no\.?|id|#)", re.IGNORECASE)
 _ESCALATION_WORDS = re.compile(
-    r"escalat|colleague|specialist|team|human|supervisor|forwarded|passed (it|this|your)",
+    r"escalat|colleague|specialist|team|human|supervisor|support agent|forwarded|"
+    r"passed (it|this|your)|sent (it|this|your)",
     re.IGNORECASE,
 )
 _CLAIMS_REFUND = re.compile(
