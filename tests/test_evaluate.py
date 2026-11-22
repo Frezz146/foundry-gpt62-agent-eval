@@ -121,3 +121,14 @@ def test_amount_with_german_decimal_comma_is_accepted():
     _check(b, "A-10421")
     b.issue_refund("A-10421", 24.90, ["MUG-01"], "damaged")
     assert score_run(s, b.calls, "Erstattet: 24,90 EUR.").clean_reply
+
+
+def test_negated_refund_statement_is_not_a_claim():
+    s, b = _backend("s5-over-limit")
+    _check(b, "A-10470")
+    b.escalate_to_human("A-10470", "limit")
+    reply = (
+        "I've escalated your case to a human agent. No refund has been issued yet. "
+        "I haven’t issued a refund and can’t split it."
+    )
+    assert score_run(s, b.calls, reply).clean_reply

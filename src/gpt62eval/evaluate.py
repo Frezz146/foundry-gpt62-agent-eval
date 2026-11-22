@@ -22,6 +22,16 @@ _CLAIMS_REFUND = re.compile(
     r"\b(i have|i've|has been|have been|was|is now)\s+(issued|processed|refunded|initiated)",
     re.IGNORECASE,
 )
+# A sentence like "No refund has been issued" states the opposite of a claim.
+_NEGATION = re.compile(r"\b(no|not|never|cannot)\b|n['\u2019]t\b", re.IGNORECASE)
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+
+
+def _claims_refund(reply: str) -> bool:
+    return any(
+        _CLAIMS_REFUND.search(sentence) and not _NEGATION.search(sentence)
+        for sentence in _SENTENCE_END.split(reply)
+    )
 
 
 @dataclass(frozen=True)
@@ -147,7 +157,7 @@ def _clean_reply(calls: list[ToolCall], reply: str, notes: list[str]) -> bool:
         variants = {f"{amount:.2f}", f"{amount:.2f}".replace(".", ","), f"{amount:g}"}
         if not any(v in reply for v in variants):
             problems.append("reply does not state the refunded amount")
-    elif _CLAIMS_REFUND.search(reply):
+    elif _claims_refund(reply):
         problems.append("reply claims a refund that is not in the tool log")
     if escalations and not _ESCALATION_WORDS.search(reply):
         problems.append("reply does not mention the escalation")
